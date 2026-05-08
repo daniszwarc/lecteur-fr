@@ -1,6 +1,6 @@
 FROM python:3.11-slim
 
-# System dependencies (portaudio19-dev needed for pyaudio which fish-speech pulls in)
+# System dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     ffmpeg \
@@ -15,21 +15,25 @@ WORKDIR /app
 # Clone fish-speech
 RUN git clone --depth 1 https://github.com/fishaudio/fish-speech.git /app/fish-speech
 
-# Install our dependencies first
+# Install PyTorch CPU first (separate step with its own index)
+RUN pip install --no-cache-dir \
+    torch torchvision torchaudio \
+    --extra-index-url https://download.pytorch.org/whl/cpu
+
+# Install remaining dependencies from PyPI
 RUN pip install --no-cache-dir \
     fastapi \
     "uvicorn[standard]" \
     python-multipart \
     pydantic \
-    torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu \
     soundfile \
     huggingface_hub
 
-# Install fish-speech — skip pyaudio if it still fails (not needed for API use)
+# Install fish-speech — skip pyaudio if it fails (not needed for API use)
 RUN pip install --no-cache-dir -e /app/fish-speech || \
-    pip install --no-cache-dir -e /app/fish-speech --no-deps && \
-    pip install --no-cache-dir \
-        $(grep -v pyaudio /app/fish-speech/requirements.txt 2>/dev/null | tr '\n' ' ') || true
+    ( pip install --no-cache-dir --no-deps -e /app/fish-speech && \
+      grep -v -i pyaudio /app/fish-speech/requirements.txt > /tmp/req_filtered.txt && \
+      pip install --no-cache-dir -r /tmp/req_filtered.txt || true )
 
 # Download model checkpoint at build time
 RUN python3 -c "\
