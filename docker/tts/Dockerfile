@@ -1,25 +1,51 @@
 FROM python:3.11-slim
 
+# System dependencies (portaudio19-dev needed for pyaudio which fish-speech pulls in)
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    ffmpeg libsndfile1 git build-essential \
+    git \
+    ffmpeg \
+    libsndfile1 \
+    portaudio19-dev \
+    build-essential \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-RUN git clone https://github.com/fishaudio/fish-speech.git /app/fish-speech
+# Clone fish-speech
+RUN git clone --depth 1 https://github.com/fishaudio/fish-speech.git /app/fish-speech
 
+# Install our dependencies first
 RUN pip install --no-cache-dir \
-    fastapi uvicorn python-multipart pydantic \
-    torch torchaudio soundfile huggingface_hub
+    fastapi \
+    "uvicorn[standard]" \
+    python-multipart \
+    pydantic \
+    torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu \
+    soundfile \
+    huggingface_hub
 
-RUN pip install --no-cache-dir -e /app/fish-speech
+# Install fish-speech — skip pyaudio if it still fails (not needed for API use)
+RUN pip install --no-cache-dir -e /app/fish-speech || \
+    pip install --no-cache-dir -e /app/fish-speech --no-deps && \
+    pip install --no-cache-dir \
+        $(grep -v pyaudio /app/fish-speech/requirements.txt 2>/dev/null | tr '\n' ' ') || true
 
-RUN python -c "from huggingface_hub import snapshot_download; \
-    snapshot_download(repo_id='openfishai/fish-speech-1.5', \
-    local_dir='/app/checkpoints/fish-speech-1.5')"
+# Download model checkpoint at build time
+RUN python3 -c "\
+from huggingface_hub import snapshot_download; \
+import pathlib; \
+dest = pathlib.Path('/app/checkpoints/fish-speech-1.5'); \
+dest.mkdir(parents=True, exist_ok=True); \
+snapshot_download(repo_id='openfishai/fish-speech-1.5', local_dir=str(dest), ignore_patterns=['*.bin']); \
+print('Checkpoint downloaded.')"
 
-COPY server.py /app/server.py
+# Copy application
+COPY server.py .
+
+# Voice sample directory (populated via /upload-voice endpoint)
+RUN mkdir -p /app/voice
 
 EXPOSE 8000
 
-CMD ["uvicorn", "server:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "server:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]
