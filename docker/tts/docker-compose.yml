@@ -1,0 +1,26 @@
+services:
+  tts:
+    build: .
+    container_name: tts
+    restart: unless-stopped
+    networks:
+      - n8n_default
+    volumes:
+      - tts_models:/app/checkpoints
+      - tts_voice:/app/voice
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.tts.rule=Host(`tts.daniszwarc.cloud`)"
+      - "traefik.http.routers.tts.entrypoints=websecure"
+      - "traefik.http.routers.tts.tls.certresolver=mytlschallenge"
+      - "traefik.http.services.tts.loadbalancer.server.port=8000"
+
+volumes:
+  tts_models:
+    name: tts_models
+  tts_voice:
+    name: tts_voice
+
+networks:
+  n8n_default:
+    external: true

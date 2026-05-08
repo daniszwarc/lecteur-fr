@@ -1,71 +1,103 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5" />
-  <meta name="theme-color" content="#185fa5" />
-  <meta name="description" content="Lecteur de texte en français — PDF et texte libre" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="Lecteur FR" />
-  <link rel="manifest" href="manifest.json" />
-  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=5"/>
+  <meta name="theme-color" content="#1a1a2e"/>
+  <meta name="description" content="Lecteur de texte en français — PDF et texte libre"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="Lecteur FR"/>
+  <link rel="manifest" href="manifest.json"/>
+  <link rel="apple-touch-icon" href="icons/icon-192.png"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet"/>
   <title>Lecteur FR</title>
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    :root {
-      --bg:#ffffff; --bg2:#f5f5f7; --bg3:#e8e8ea;
-      --text:#1a1a1e; --text2:#6e6e73;
-      --border:rgba(0,0,0,0.12); --border2:rgba(0,0,0,0.22);
-      --accent:#185fa5; --accent-bg:#e6f1fb;
-      --danger:#a32d2d; --radius:10px; --radius-lg:14px;
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --bg:#1a1a2e;--bg2:#16213e;--bg3:#0f3460;
+      --surface:#1e1e3a;--surface2:#252548;
+      --text:#e8e8f0;--text2:#9090b0;
+      --border:rgba(124,106,247,0.2);--border2:rgba(124,106,247,0.4);
+      --accent:#7c6af7;--accent-dim:#5a4ad1;--accent-bg:rgba(124,106,247,0.12);
+      --green:#4caf7d;--danger:#f07070;--radius:10px;--radius-lg:14px;
     }
-    @media (prefers-color-scheme: dark) {
-      :root {
-        --bg:#1c1c1e; --bg2:#2c2c2e; --bg3:#3a3a3c;
-        --text:#f2f2f7; --text2:#8e8e93;
-        --border:rgba(255,255,255,0.12); --border2:rgba(255,255,255,0.22);
-        --accent:#4a9eda; --accent-bg:#042c53; --danger:#f09595;
-      }
-    }
-    body { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; background:var(--bg); color:var(--text); min-height:100dvh; padding:1.25rem 1rem 3rem; max-width:720px; margin:0 auto; }
-    header { display:flex; align-items:center; gap:12px; margin-bottom:1.5rem; padding-bottom:1rem; border-bottom:1px solid var(--border); }
-    .logo { width:40px; height:40px; background:var(--accent); border-radius:10px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
-    .logo svg { width:22px; height:22px; }
-    header h1 { font-size:1.15rem; font-weight:600; }
-    header p { font-size:0.78rem; color:var(--text2); margin-top:2px; }
-    #dropZone { border:1.5px dashed var(--border2); border-radius:var(--radius-lg); padding:2rem 1rem; text-align:center; cursor:pointer; transition:background 0.2s,border-color 0.2s; margin-bottom:1.25rem; background:var(--bg2); }
-    #dropZone:hover,#dropZone.drag-over { background:var(--accent-bg); border-color:var(--accent); }
-    #dropZone .dz-icon { width:38px; height:38px; margin:0 auto 10px; color:var(--text2); }
-    #dropZone p { font-size:0.875rem; color:var(--text2); }
-    #dropZone span { color:var(--accent); font-weight:500; }
-    #pageInfo { display:none; align-items:center; flex-wrap:wrap; gap:8px 12px; background:var(--bg2); border-radius:var(--radius); padding:0.65rem 1rem; margin-bottom:1rem; font-size:0.84rem; }
-    #pageInfo.visible { display:flex; }
-    #docName { font-weight:500; flex:1; min-width:100px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-    #pageCount { color:var(--text2); }
-    .page-range { display:flex; align-items:center; gap:6px; color:var(--text2); }
-    .controls { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin-bottom:1.25rem; }
-    @media (max-width:500px) { .controls { grid-template-columns:1fr 1fr; } .voice-wrap { grid-column:1 / -1; } }
-    .control-group label { font-size:0.78rem; color:var(--text2); display:block; margin-bottom:5px; }
-    select, input[type="number"] { width:100%; padding:8px 10px; font-size:0.88rem; background:var(--bg2); color:var(--text); border:1px solid var(--border2); border-radius:var(--radius); outline:none; -webkit-appearance:none; appearance:none; font-family:inherit; }
-    input[type="number"] { width:64px; }
-    select:focus, input:focus { border-color:var(--accent); }
-    input[type="range"] { width:100%; accent-color:var(--accent); cursor:pointer; margin-top:4px; }
-    textarea { width:100%; min-height:220px; padding:0.9rem 1rem; font-size:0.95rem; line-height:1.8; background:var(--bg2); color:var(--text); border:1px solid var(--border2); border-radius:var(--radius-lg); resize:vertical; outline:none; margin-bottom:1rem; font-family:inherit; }
-    textarea:focus { border-color:var(--accent); }
-    #progressWrap { height:4px; background:var(--border); border-radius:2px; margin-bottom:1.25rem; display:none; overflow:hidden; }
-    #progressBar { height:100%; width:0%; background:var(--accent); border-radius:2px; transition:width 0.3s; }
-    .playback { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
-    button { display:inline-flex; align-items:center; gap:6px; padding:9px 18px; font-size:0.88rem; font-family:inherit; font-weight:500; background:var(--bg2); color:var(--text); border:1px solid var(--border2); border-radius:var(--radius); cursor:pointer; transition:background 0.15s; -webkit-tap-highlight-color:transparent; white-space:nowrap; }
-    button:hover { background:var(--bg3); }
-    button:active { transform:scale(0.97); }
-    button:disabled { opacity:0.35; cursor:default; pointer-events:none; }
-    button.primary { background:var(--accent); color:#fff; border-color:transparent; }
-    button.primary:hover { filter:brightness(1.1); }
-    #statusMsg { font-size:0.8rem; color:var(--text2); flex:1; }
-    #noVoiceMsg { display:none; margin-top:1rem; font-size:0.82rem; color:var(--danger); background:var(--bg2); border-radius:var(--radius); padding:0.75rem 1rem; line-height:1.6; }
-    #extractProgress { display:none; font-size:0.82rem; color:var(--text2); margin-bottom:0.75rem; }
-    .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+    body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100dvh;padding:1.5rem 1rem 4rem;max-width:760px;margin:0 auto}
+    /* header */
+    header{display:flex;align-items:center;gap:14px;margin-bottom:2rem;padding-bottom:1.25rem;border-bottom:1px solid var(--border)}
+    .logo{width:44px;height:44px;background:linear-gradient(135deg,var(--accent),var(--accent-dim));border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 4px 20px rgba(124,106,247,0.4)}
+    .logo svg{width:24px;height:24px}
+    header h1{font-family:'Syne',sans-serif;font-size:1.3rem;font-weight:700;letter-spacing:-0.01em}
+    header p{font-size:0.78rem;color:var(--text2);margin-top:2px}
+    /* section titles */
+    .section-title{font-family:'Syne',sans-serif;font-size:0.72rem;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--text2);margin-bottom:0.6rem}
+    /* drop zone */
+    #dropZone{border:1.5px dashed var(--border2);border-radius:var(--radius-lg);padding:2.2rem 1rem;text-align:center;cursor:pointer;transition:background 0.2s,border-color 0.2s;margin-bottom:1.25rem;background:var(--surface)}
+    #dropZone:hover,#dropZone.drag-over{background:var(--accent-bg);border-color:var(--accent)}
+    #dropZone .dz-icon{width:40px;height:40px;margin:0 auto 12px;color:var(--accent)}
+    #dropZone p{font-size:0.875rem;color:var(--text2)}
+    #dropZone span{color:var(--accent);font-weight:500}
+    /* page info */
+    #pageInfo{display:none;align-items:center;flex-wrap:wrap;gap:8px 12px;background:var(--surface);border-radius:var(--radius);padding:0.65rem 1rem;margin-bottom:1rem;font-size:0.84rem;border:1px solid var(--border)}
+    #pageInfo.visible{display:flex}
+    #docName{font-weight:500;flex:1;min-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    #pageCount{color:var(--text2)}
+    .page-range{display:flex;align-items:center;gap:6px;color:var(--text2)}
+    /* structure preview */
+    #structurePanel{display:none;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1rem;margin-bottom:1.25rem;max-height:220px;overflow-y:auto}
+    #structurePanel.visible{display:block}
+    #structurePanel .sp-h1{font-family:'Syne',sans-serif;font-size:1rem;font-weight:700;color:var(--text);margin:0.5rem 0 0.25rem}
+    #structurePanel .sp-h2{font-size:0.9rem;font-weight:600;color:var(--accent);margin:0.4rem 0 0.2rem;padding-left:0.75rem;border-left:2px solid var(--accent)}
+    #structurePanel .sp-h3{font-size:0.82rem;font-weight:500;color:var(--text2);margin:0.25rem 0;padding-left:1.5rem}
+    #structurePanel .sp-p{font-size:0.8rem;color:var(--text2);margin:0.1rem 0;padding-left:0.75rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    /* controls grid */
+    .controls{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:1.25rem}
+    @media(max-width:520px){.controls{grid-template-columns:1fr 1fr}.voice-wrap{grid-column:1/-1}}
+    .control-group label{font-size:0.77rem;color:var(--text2);display:block;margin-bottom:5px}
+    select,input[type="number"],input[type="url"]{width:100%;padding:8px 10px;font-size:0.86rem;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:var(--radius);outline:none;-webkit-appearance:none;appearance:none;font-family:'DM Sans',sans-serif}
+    input[type="number"]{width:64px}
+    select:focus,input:focus{border-color:var(--accent)}
+    input[type="range"]{width:100%;accent-color:var(--accent);cursor:pointer;margin-top:4px}
+    /* textarea */
+    textarea{width:100%;min-height:200px;padding:0.9rem 1rem;font-size:0.93rem;line-height:1.85;background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:var(--radius-lg);resize:vertical;outline:none;margin-bottom:1.25rem;font-family:'DM Sans',sans-serif}
+    textarea:focus{border-color:var(--accent)}
+    /* VPS panel */
+    .vps-panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1rem 1.1rem;margin-bottom:1.25rem}
+    .vps-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:0.7rem}
+    .vps-row:last-child{margin-bottom:0}
+    .vps-panel input[type="url"]{flex:1;min-width:160px}
+    .badge{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:20px;font-size:0.74rem;font-weight:500}
+    .badge.green{background:rgba(76,175,125,0.15);color:var(--green);border:1px solid rgba(76,175,125,0.3)}
+    .badge.purple{background:var(--accent-bg);color:var(--accent);border:1px solid var(--border2)}
+    .badge.red{background:rgba(240,112,112,0.12);color:var(--danger);border:1px solid rgba(240,112,112,0.3)}
+    .dot{width:6px;height:6px;border-radius:50%;background:currentColor}
+    /* toggle */
+    .toggle-wrap{display:flex;align-items:center;gap:8px;font-size:0.82rem;color:var(--text2)}
+    .toggle{position:relative;width:36px;height:20px;flex-shrink:0}
+    .toggle input{opacity:0;width:0;height:0}
+    .toggle-slider{position:absolute;inset:0;background:var(--surface2);border-radius:20px;cursor:pointer;transition:background 0.2s;border:1px solid var(--border)}
+    .toggle-slider::before{content:'';position:absolute;width:14px;height:14px;left:2px;top:2px;background:#fff;border-radius:50%;transition:transform 0.2s}
+    .toggle input:checked+.toggle-slider{background:var(--accent);border-color:var(--accent)}
+    .toggle input:checked+.toggle-slider::before{transform:translateX(16px)}
+    /* progress */
+    #progressWrap{height:4px;background:var(--border);border-radius:2px;margin-bottom:1.25rem;display:none;overflow:hidden}
+    #progressBar{height:100%;width:0%;background:linear-gradient(90deg,var(--accent),#a78bfa);border-radius:2px;transition:width 0.3s}
+    /* playback */
+    .playback{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    button{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;font-size:0.86rem;font-family:'DM Sans',sans-serif;font-weight:500;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;transition:background 0.15s,border-color 0.15s;-webkit-tap-highlight-color:transparent;white-space:nowrap}
+    button:hover{background:var(--surface);border-color:var(--border2)}
+    button:active{transform:scale(0.97)}
+    button:disabled{opacity:0.35;cursor:default;pointer-events:none}
+    button.primary{background:var(--accent);color:#fff;border-color:transparent}
+    button.primary:hover{background:var(--accent-dim)}
+    button.sm{padding:6px 12px;font-size:0.78rem}
+    #statusMsg{font-size:0.8rem;color:var(--text2);flex:1}
+    #noVoiceMsg{display:none;margin-top:1rem;font-size:0.82rem;color:var(--danger);background:var(--surface);border-radius:var(--radius);padding:0.75rem 1rem;line-height:1.6;border:1px solid rgba(240,112,112,0.25)}
+    #extractProgress{display:none;font-size:0.82rem;color:var(--text2);margin-bottom:0.75rem}
+    .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+    ::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
   </style>
 </head>
 <body>
@@ -81,7 +113,9 @@
     <p>Lecture de texte et PDF en français</p>
   </div>
 </header>
+
 <h2 class="sr-only">Importer un PDF ou coller du texte pour lecture vocale</h2>
+
 <div id="dropZone"
   onclick="document.getElementById('fileInput').click()"
   ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)"
@@ -94,6 +128,7 @@
   <p>Glisser un PDF ici ou <span>cliquer pour parcourir</span></p>
   <input type="file" id="fileInput" accept="application/pdf" style="display:none" onchange="handleFile(this.files[0])">
 </div>
+
 <div id="pageInfo">
   <span id="docName"></span>
   <span id="pageCount"></span>
@@ -102,13 +137,16 @@
     <input type="number" id="pageFrom" min="1" value="1" aria-label="Page de début">
     <span>à</span>
     <input type="number" id="pageTo" min="1" value="1" aria-label="Page de fin">
-    <button onclick="extractPages()" style="padding:5px 10px;font-size:0.78rem;">Extraire</button>
+    <button class="sm" onclick="extractPages()">Extraire</button>
   </div>
 </div>
+
 <div id="extractProgress">⏳ Extraction du texte en cours…</div>
+<div id="structurePanel" aria-label="Aperçu de la structure du document"></div>
+
 <div class="controls">
   <div class="control-group voice-wrap">
-    <label for="voiceSelect">Voix</label>
+    <label for="voiceSelect">Voix système</label>
     <select id="voiceSelect"></select>
   </div>
   <div class="control-group">
@@ -119,8 +157,33 @@
     <label for="pitch">Ton — <strong id="pitchVal">1.0</strong></label>
     <input type="range" id="pitch" min="0.5" max="1.5" step="0.1" value="1.0">
   </div>
+  <div class="control-group">
+    <label for="sectionPause">Pause sections — <strong id="sectionPauseVal">700</strong>ms</label>
+    <input type="range" id="sectionPause" min="0" max="2000" step="100" value="700">
+  </div>
 </div>
+
+<!-- VPS TTS panel -->
+<div class="vps-panel" id="vpsPanel">
+  <div class="section-title">Voix clonée — serveur TTS</div>
+  <div class="vps-row">
+    <input type="url" id="vpsUrl" placeholder="https://tts.daniszwarc.cloud" aria-label="URL du serveur TTS"/>
+    <button class="sm" onclick="testVps()">Tester</button>
+    <span id="vpsBadge"></span>
+  </div>
+  <div class="vps-row">
+    <label class="toggle-wrap">
+      <span class="toggle">
+        <input type="checkbox" id="useClonedVoice" onchange="onCloneToggle()"/>
+        <span class="toggle-slider"></span>
+      </span>
+      Utiliser la voix clonée
+    </label>
+  </div>
+</div>
+
 <textarea id="textInput" placeholder="Le texte extrait du PDF apparaîtra ici. Vous pouvez aussi coller du texte directement." aria-label="Texte à lire"></textarea>
+
 <div id="progressWrap" aria-hidden="true"><div id="progressBar"></div></div>
 <div class="playback">
   <button id="playBtn" class="primary" onclick="startSpeech()">
@@ -139,121 +202,271 @@
   Windows : Paramètres → Heure et langue → Voix → Ajouter des voix → Français.<br>
   macOS : Accessibilité → Contenu vocal → Voix système → Personnaliser.
 </div>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script>
-  pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-  const synth=window.speechSynthesis;
-  let voices=[],utterance=null,paused=false,chunkIndex=0,chunks=[],pdfDoc=null,totalPages=0;
-  const $=id=>document.getElementById(id);
-  $('rate').oninput=()=>$('rateVal').textContent=parseFloat($('rate').value).toFixed(2);
-  $('pitch').oninput=()=>$('pitchVal').textContent=parseFloat($('pitch').value).toFixed(1);
-  function loadVoices(){
-    voices=synth.getVoices();
-    const fr=voices.filter(v=>v.lang.startsWith('fr'));
-    const sel=$('voiceSelect'); sel.innerHTML='';
-    if(fr.length===0){
-      $('noVoiceMsg').style.display='block';
-      voices.forEach(v=>{const o=document.createElement('option');o.value=v.name;o.textContent=v.name+' ('+v.lang+')';sel.appendChild(o);});
-      return;
-    }
-    fr.forEach(v=>{
-      const o=document.createElement('option');o.value=v.name;
-      o.textContent=v.name+' — '+v.lang+(v.lang==='fr-CA'||v.name.toLowerCase().includes('canada')?' ★':'');
-      sel.appendChild(o);
+pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+const synth=window.speechSynthesis;
+let voices=[],utterance=null,paused=false,chunkIndex=0,chunks=[],pdfDoc=null,totalPages=0;
+let vpsAudio=null,vpsPlaying=false;
+const $=id=>document.getElementById(id);
+
+// Persist VPS URL
+const storedUrl=localStorage.getItem('vpsUrl')||'https://tts.daniszwarc.cloud';
+$('vpsUrl').value=storedUrl;
+$('vpsUrl').addEventListener('input',()=>localStorage.setItem('vpsUrl',$('vpsUrl').value.trim()));
+
+const storedClone=localStorage.getItem('useClonedVoice')==='true';
+$('useClonedVoice').checked=storedClone;
+updateCloneBadge();
+
+$('rate').oninput=()=>$('rateVal').textContent=parseFloat($('rate').value).toFixed(2);
+$('pitch').oninput=()=>$('pitchVal').textContent=parseFloat($('pitch').value).toFixed(1);
+$('sectionPause').oninput=()=>$('sectionPauseVal').textContent=$('sectionPause').value;
+
+// ── Voice loading ──
+function loadVoices(){
+  voices=synth.getVoices();
+  const fr=voices.filter(v=>v.lang.startsWith('fr'));
+  const sel=$('voiceSelect');sel.innerHTML='';
+  if(fr.length===0){
+    $('noVoiceMsg').style.display='block';
+    voices.forEach(v=>{const o=document.createElement('option');o.value=v.name;o.textContent=v.name+' ('+v.lang+')';sel.appendChild(o);});
+    return;
+  }
+  fr.forEach(v=>{
+    const o=document.createElement('option');o.value=v.name;
+    o.textContent=v.name+' — '+v.lang+(v.lang==='fr-CA'||v.name.toLowerCase().includes('canada')?' ★':'');
+    sel.appendChild(o);
+  });
+}
+if(synth.onvoiceschanged!==undefined)synth.onvoiceschanged=loadVoices;
+loadVoices();setTimeout(loadVoices,500);
+
+// ── Drag & drop ──
+function onDragOver(e){e.preventDefault();$('dropZone').classList.add('drag-over');}
+function onDragLeave(){$('dropZone').classList.remove('drag-over');}
+function onDrop(e){
+  e.preventDefault();$('dropZone').classList.remove('drag-over');
+  const f=e.dataTransfer.files[0];
+  if(f&&f.type==='application/pdf')handleFile(f);
+  else $('statusMsg').textContent='Veuillez déposer un fichier PDF.';
+}
+function handleFile(file){
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=async(e)=>{
+    pdfDoc=await pdfjsLib.getDocument({data:new Uint8Array(e.target.result)}).promise;
+    totalPages=pdfDoc.numPages;
+    $('docName').textContent=file.name;
+    $('pageCount').textContent=totalPages+' page'+(totalPages>1?'s':'');
+    $('pageFrom').value=1;$('pageFrom').max=totalPages;
+    $('pageTo').value=totalPages;$('pageTo').max=totalPages;
+    $('pageInfo').classList.add('visible');
+    await extractPages();
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+// ── PDF extraction with structure ──
+async function extractPages(){
+  if(!pdfDoc)return;
+  const from=Math.max(1,parseInt($('pageFrom').value)||1);
+  const to=Math.min(totalPages,parseInt($('pageTo').value)||totalPages);
+  $('extractProgress').style.display='block';
+  $('textInput').value='';$('structurePanel').innerHTML='';$('structurePanel').classList.remove('visible');
+
+  const allItems=[];
+  for(let i=from;i<=to;i++){
+    const page=await pdfDoc.getPage(i);
+    const vp=page.getViewport({scale:1});
+    const content=await page.getTextContent();
+    content.items.forEach(it=>{
+      if(it.str.trim())allItems.push({str:it.str,h:Math.abs(it.transform[3])||it.height||12,y:vp.height-it.transform[5],pg:i});
     });
   }
-  if(synth.onvoiceschanged!==undefined)synth.onvoiceschanged=loadVoices;
-  loadVoices();setTimeout(loadVoices,500);
-  function onDragOver(e){e.preventDefault();$('dropZone').classList.add('drag-over');}
-  function onDragLeave(){$('dropZone').classList.remove('drag-over');}
-  function onDrop(e){
-    e.preventDefault();$('dropZone').classList.remove('drag-over');
-    const f=e.dataTransfer.files[0];
-    if(f&&f.type==='application/pdf')handleFile(f);
-    else $('statusMsg').textContent='Veuillez déposer un fichier PDF.';
-  }
-  function handleFile(file){
-    if(!file)return;
-    const reader=new FileReader();
-    reader.onload=async(e)=>{
-      pdfDoc=await pdfjsLib.getDocument({data:new Uint8Array(e.target.result)}).promise;
-      totalPages=pdfDoc.numPages;
-      $('docName').textContent=file.name;
-      $('pageCount').textContent=totalPages+' page'+(totalPages>1?'s':'');
-      $('pageFrom').value=1;$('pageFrom').max=totalPages;
-      $('pageTo').value=totalPages;$('pageTo').max=totalPages;
-      $('pageInfo').classList.add('visible');
-      await extractPages();
-    };
-    reader.readAsArrayBuffer(file);
-  }
-  async function extractPages(){
-    if(!pdfDoc)return;
-    const from=Math.max(1,parseInt($('pageFrom').value)||1);
-    const to=Math.min(totalPages,parseInt($('pageTo').value)||totalPages);
-    $('extractProgress').style.display='block';
-    $('textInput').value='';
-    let text='';
-    for(let i=from;i<=to;i++){
-      const page=await pdfDoc.getPage(i);
-      const content=await page.getTextContent();
-      const t=content.items.map(it=>it.str).join(' ').replace(/\s+/g,' ').trim();
-      if(t)text+=t+'\n\n';
+
+  // Group into lines by Y proximity
+  const lines=[];
+  allItems.sort((a,b)=>a.pg-b.pg||a.y-b.y);
+  for(const item of allItems){
+    const last=lines[lines.length-1];
+    if(last&&Math.abs(item.y-last.y)<4&&item.pg===last.pg){
+      last.str+=' '+item.str;last.h=Math.max(last.h,item.h);
+    }else{
+      lines.push({str:item.str,h:item.h,y:item.y,pg:item.pg});
     }
-    $('textInput').value=text.trim();
-    $('extractProgress').style.display='none';
-    $('statusMsg').textContent='Texte extrait — pages '+from+' à '+to+'.';
   }
-  function splitChunks(text){
-    return text.match(/[^.!?;:\n]+[.!?;:\n]*/g)?.map(s=>s.trim()).filter(Boolean)||[text];
+
+  // Classify headings by font size ratio
+  const bodyFonts=lines.map(l=>l.h).sort((a,b)=>a-b);
+  const median=bodyFonts[Math.floor(bodyFonts.length/2)]||12;
+
+  const structure=[];
+  const pageNumRe=/^\s*\d{1,4}\s*$/;
+  for(const line of lines){
+    const t=line.str.trim();
+    if(!t)continue;
+    // filter page numbers: short numeric string near top/bottom
+    if(pageNumRe.test(t)&&(line.y<50||line.y>700))continue;
+    const ratio=line.h/median;
+    let type='p';
+    if(ratio>=1.8)type='h1';
+    else if(ratio>=1.35)type='h2';
+    else if(ratio>=1.15)type='h3';
+    structure.push({type,text:t});
   }
-  function startSpeech(){
-    const text=$('textInput').value.trim();
-    if(!text){$('statusMsg').textContent='Veuillez charger un PDF ou coller du texte.';return;}
-    synth.cancel();chunks=splitChunks(text);chunkIndex=0;paused=false;
-    $('progressWrap').style.display='block';$('progressBar').style.width='0%';
+
+  // Build plain text and structure preview
+  const plainLines=[];
+  const spEl=$('structurePanel');
+  structure.forEach(s=>{
+    plainLines.push(s.text);
+    if(s.type==='h1'||s.type==='h2')plainLines.push('');
+    const el=document.createElement('div');
+    el.className='sp-'+s.type;
+    el.textContent=s.text;
+    spEl.appendChild(el);
+  });
+
+  $('textInput').value=plainLines.join('\n').trim();
+  $('extractProgress').style.display='none';
+  if(spEl.children.length>0)spEl.classList.add('visible');
+  $('statusMsg').textContent='Texte extrait — pages '+from+' à '+to+'.';
+}
+
+// ── VPS panel ──
+async function testVps(){
+  const url=($('vpsUrl').value||'').replace(/\/$/,'');
+  $('vpsBadge').innerHTML='<span class="badge purple"><span class="dot"></span>Test…</span>';
+  try{
+    const r=await fetch(url+'/health',{signal:AbortSignal.timeout(6000)});
+    const d=await r.json();
+    const voiceOk=d.voice_loaded;
+    $('vpsBadge').innerHTML=voiceOk
+      ?'<span class="badge green"><span class="dot"></span>Voix clonée ✓</span>'
+      :'<span class="badge purple"><span class="dot"></span>Voix système (pas de sample)</span>';
+  }catch{
+    $('vpsBadge').innerHTML='<span class="badge red"><span class="dot"></span>Inaccessible</span>';
+  }
+}
+function onCloneToggle(){
+  localStorage.setItem('useClonedVoice',$('useClonedVoice').checked);
+  updateCloneBadge();
+}
+function updateCloneBadge(){
+  const on=$('useClonedVoice').checked;
+  $('vpsBadge').innerHTML=on
+    ?'<span class="badge green"><span class="dot"></span>Voix clonée</span>'
+    :'<span class="badge purple"><span class="dot"></span>Voix système</span>';
+}
+
+// ── Playback ──
+function splitChunks(text){
+  return text.match(/[^.!?;:\n]+[.!?;:\n]*/g)?.map(s=>s.trim()).filter(Boolean)||[text];
+}
+
+async function startSpeech(){
+  const text=$('textInput').value.trim();
+  if(!text){$('statusMsg').textContent='Veuillez charger un PDF ou coller du texte.';return;}
+  stopSpeech();
+  chunks=splitChunks(text);chunkIndex=0;paused=false;
+  $('progressWrap').style.display='block';$('progressBar').style.width='0%';
+
+  if($('useClonedVoice').checked){
+    await playVps(text);
+  }else{
     speakChunk();
   }
-  function speakChunk(){
-    if(chunkIndex>=chunks.length){onEnd();return;}
-    const voice=voices.find(v=>v.name===$('voiceSelect').value);
-    utterance=new SpeechSynthesisUtterance(chunks[chunkIndex]);
-    if(voice)utterance.voice=voice;
-    utterance.lang=voice?voice.lang:'fr-FR';
-    utterance.rate=parseFloat($('rate').value);
-    utterance.pitch=parseFloat($('pitch').value);
-    utterance.onstart=()=>{
-      setButtons(true);
-      $('statusMsg').textContent='Lecture… ('+(chunkIndex+1)+'/'+chunks.length+')';
-      $('progressBar').style.width=Math.round((chunkIndex/chunks.length)*100)+'%';
-    };
-    utterance.onend=()=>{if(!paused){chunkIndex++;speakChunk();}};
-    utterance.onerror=(e)=>{if(e.error!=='interrupted'){$('statusMsg').textContent='Erreur : '+e.error;onEnd();}};
-    synth.speak(utterance);
+}
+
+async function playVps(text){
+  const url=($('vpsUrl').value||'').replace(/\/$/,'');
+  const speed=parseFloat($('rate').value);
+  setButtons(true);$('statusMsg').textContent='Synthèse en cours…';
+  try{
+    const res=await fetch(url+'/speak',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({text,speed}),
+    });
+    if(!res.ok)throw new Error('HTTP '+res.status);
+    const blob=await res.blob();
+    const objUrl=URL.createObjectURL(blob);
+    vpsAudio=new Audio(objUrl);
+    vpsPlaying=true;
+    vpsAudio.onended=()=>{URL.revokeObjectURL(objUrl);vpsPlaying=false;onEnd();};
+    vpsAudio.onerror=()=>{URL.revokeObjectURL(objUrl);vpsPlaying=false;fallbackSpeech(text);};
+    vpsAudio.play();
+    $('statusMsg').textContent='Lecture (voix clonée)…';
+    const updateProg=setInterval(()=>{
+      if(!vpsAudio||vpsAudio.ended){clearInterval(updateProg);return;}
+      if(vpsAudio.duration)$('progressBar').style.width=Math.round((vpsAudio.currentTime/vpsAudio.duration)*100)+'%';
+    },300);
+  }catch{
+    fallbackSpeech(text);
   }
-  function togglePause(){
-    if(!synth.speaking)return;
-    if(paused){
-      paused=false;synth.resume();
-      $('pauseBtn').innerHTML='<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg> Pause';
-      $('statusMsg').textContent='Lecture en cours…';
-    }else{
-      paused=true;synth.pause();
-      $('pauseBtn').innerHTML='<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg> Reprendre';
-      $('statusMsg').textContent='En pause';
-    }
+}
+
+function fallbackSpeech(text){
+  $('statusMsg').textContent='TTS VPS indisponible — voix système…';
+  chunks=splitChunks(text);chunkIndex=0;
+  speakChunk();
+}
+
+function speakChunk(){
+  if(chunkIndex>=chunks.length){onEnd();return;}
+  const voice=voices.find(v=>v.name===$('voiceSelect').value);
+  utterance=new SpeechSynthesisUtterance(chunks[chunkIndex]);
+  if(voice)utterance.voice=voice;
+  utterance.lang=voice?voice.lang:'fr-FR';
+  utterance.rate=parseFloat($('rate').value);
+  utterance.pitch=parseFloat($('pitch').value);
+  utterance.onstart=()=>{
+    setButtons(true);
+    $('statusMsg').textContent='Lecture… ('+(chunkIndex+1)+'/'+chunks.length+')';
+    $('progressBar').style.width=Math.round((chunkIndex/chunks.length)*100)+'%';
+  };
+  utterance.onend=()=>{
+    if(paused)return;
+    chunkIndex++;
+    const pause=parseInt($('sectionPause').value)||0;
+    if(pause>0)setTimeout(speakChunk,pause);else speakChunk();
+  };
+  utterance.onerror=(e)=>{if(e.error!=='interrupted'){$('statusMsg').textContent='Erreur : '+e.error;onEnd();}};
+  synth.speak(utterance);
+}
+
+function togglePause(){
+  if(vpsPlaying&&vpsAudio){
+    if(vpsAudio.paused){vpsAudio.play();paused=false;$('pauseBtn').innerHTML=pauseIcon()+'Pause';$('statusMsg').textContent='Lecture…';}
+    else{vpsAudio.pause();paused=true;$('pauseBtn').innerHTML=resumeIcon()+'Reprendre';$('statusMsg').textContent='En pause';}
+    return;
   }
-  function stopSpeech(){paused=false;synth.cancel();onEnd();}
-  function onEnd(){
-    setButtons(false);
-    $('progressBar').style.width='100%';
-    setTimeout(()=>{$('progressWrap').style.display='none';$('progressBar').style.width='0%';},900);
-    $('statusMsg').textContent=chunkIndex>=chunks.length&&chunks.length>0?'Lecture terminée ✓':'';
-  }
-  function setButtons(on){$('playBtn').disabled=on;$('pauseBtn').disabled=!on;$('stopBtn').disabled=!on;}
-  if('serviceWorker' in navigator){
-    window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
-  }
+  if(!synth.speaking)return;
+  if(paused){paused=false;synth.resume();$('pauseBtn').innerHTML=pauseIcon()+'Pause';$('statusMsg').textContent='Lecture en cours…';}
+  else{paused=true;synth.pause();$('pauseBtn').innerHTML=resumeIcon()+'Reprendre';$('statusMsg').textContent='En pause';}
+}
+function pauseIcon(){return'<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg> ';}
+function resumeIcon(){return'<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg> ';}
+
+function stopSpeech(){
+  paused=false;synth.cancel();
+  if(vpsAudio){vpsAudio.pause();vpsAudio=null;}
+  vpsPlaying=false;
+  onEnd();
+}
+function onEnd(){
+  setButtons(false);
+  $('progressBar').style.width='100%';
+  setTimeout(()=>{$('progressWrap').style.display='none';$('progressBar').style.width='0%';},900);
+  $('statusMsg').textContent=chunkIndex>=chunks.length&&chunks.length>0?'Lecture terminée ✓':'';
+}
+function setButtons(on){$('playBtn').disabled=on;$('pauseBtn').disabled=!on;$('stopBtn').disabled=!on;}
+
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+}
 </script>
 </body>
 </html>
