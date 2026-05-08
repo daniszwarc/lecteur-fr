@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5" />
+  <meta name="theme-color" content="#185fa5" />
+  <meta name="description" content="Lecteur de texte en français — PDF et texte libre" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Lecteur FR" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <title>Lecteur FR</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:#ffffff; --bg2:#f5f5f7; --bg3:#e8e8ea;
+      --text:#1a1a1e; --text2:#6e6e73;
+      --border:rgba(0,0,0,0.12); --border2:rgba(0,0,0,0.22);
+      --accent:#185fa5; --accent-bg:#e6f1fb;
+      --danger:#a32d2d; --radius:10px; --radius-lg:14px;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg:#1c1c1e; --bg2:#2c2c2e; --bg3:#3a3a3c;
+        --text:#f2f2f7; --text2:#8e8e93;
+        --border:rgba(255,255,255,0.12); --border2:rgba(255,255,255,0.22);
+        --accent:#4a9eda; --accent-bg:#042c53; --danger:#f09595;
+      }
+    }
+    body { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; background:var(--bg); color:var(--text); min-height:100dvh; padding:1.25rem 1rem 3rem; max-width:720px; margin:0 auto; }
+    header { display:flex; align-items:center; gap:12px; margin-bottom:1.5rem; padding-bottom:1rem; border-bottom:1px solid var(--border); }
+    .logo { width:40px; height:40px; background:var(--accent); border-radius:10px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+    .logo svg { width:22px; height:22px; }
+    header h1 { font-size:1.15rem; font-weight:600; }
+    header p { font-size:0.78rem; color:var(--text2); margin-top:2px; }
+    #dropZone { border:1.5px dashed var(--border2); border-radius:var(--radius-lg); padding:2rem 1rem; text-align:center; cursor:pointer; transition:background 0.2s,border-color 0.2s; margin-bottom:1.25rem; background:var(--bg2); }
+    #dropZone:hover,#dropZone.drag-over { background:var(--accent-bg); border-color:var(--accent); }
+    #dropZone .dz-icon { width:38px; height:38px; margin:0 auto 10px; color:var(--text2); }
+    #dropZone p { font-size:0.875rem; color:var(--text2); }
+    #dropZone span { color:var(--accent); font-weight:500; }
+    #pageInfo { display:none; align-items:center; flex-wrap:wrap; gap:8px 12px; background:var(--bg2); border-radius:var(--radius); padding:0.65rem 1rem; margin-bottom:1rem; font-size:0.84rem; }
+    #pageInfo.visible { display:flex; }
+    #docName { font-weight:500; flex:1; min-width:100px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    #pageCount { color:var(--text2); }
+    .page-range { display:flex; align-items:center; gap:6px; color:var(--text2); }
+    .controls { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin-bottom:1.25rem; }
+    @media (max-width:500px) { .controls { grid-template-columns:1fr 1fr; } .voice-wrap { grid-column:1 / -1; } }
+    .control-group label { font-size:0.78rem; color:var(--text2); display:block; margin-bottom:5px; }
+    select, input[type="number"] { width:100%; padding:8px 10px; font-size:0.88rem; background:var(--bg2); color:var(--text); border:1px solid var(--border2); border-radius:var(--radius); outline:none; -webkit-appearance:none; appearance:none; font-family:inherit; }
+    input[type="number"] { width:64px; }
+    select:focus, input:focus { border-color:var(--accent); }
+    input[type="range"] { width:100%; accent-color:var(--accent); cursor:pointer; margin-top:4px; }
+    textarea { width:100%; min-height:220px; padding:0.9rem 1rem; font-size:0.95rem; line-height:1.8; background:var(--bg2); color:var(--text); border:1px solid var(--border2); border-radius:var(--radius-lg); resize:vertical; outline:none; margin-bottom:1rem; font-family:inherit; }
+    textarea:focus { border-color:var(--accent); }
+    #progressWrap { height:4px; background:var(--border); border-radius:2px; margin-bottom:1.25rem; display:none; overflow:hidden; }
+    #progressBar { height:100%; width:0%; background:var(--accent); border-radius:2px; transition:width 0.3s; }
+    .playback { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+    button { display:inline-flex; align-items:center; gap:6px; padding:9px 18px; font-size:0.88rem; font-family:inherit; font-weight:500; background:var(--bg2); color:var(--text); border:1px solid var(--border2); border-radius:var(--radius); cursor:pointer; transition:background 0.15s; -webkit-tap-highlight-color:transparent; white-space:nowrap; }
+    button:hover { background:var(--bg3); }
+    button:active { transform:scale(0.97); }
+    button:disabled { opacity:0.35; cursor:default; pointer-events:none; }
+    button.primary { background:var(--accent); color:#fff; border-color:transparent; }
+    button.primary:hover { filter:brightness(1.1); }
+    #statusMsg { font-size:0.8rem; color:var(--text2); flex:1; }
+    #noVoiceMsg { display:none; margin-top:1rem; font-size:0.82rem; color:var(--danger); background:var(--bg2); border-radius:var(--radius); padding:0.75rem 1rem; line-height:1.6; }
+    #extractProgress { display:none; font-size:0.82rem; color:var(--text2); margin-bottom:0.75rem; }
+    .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+  </style>
+</head>
+<body>
+<header>
+  <div class="logo" aria-hidden="true">
+    <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8">
+      <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6z"/>
+      <path d="M14 2v6h6M9 13h6M9 17h4"/>
+    </svg>
+  </div>
+  <div>
+    <h1>Lecteur FR</h1>
+    <p>Lecture de texte et PDF en français</p>
+  </div>
+</header>
+<h2 class="sr-only">Importer un PDF ou coller du texte pour lecture vocale</h2>
+<div id="dropZone"
+  onclick="document.getElementById('fileInput').click()"
+  ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)"
+  role="button" tabindex="0" aria-label="Importer un fichier PDF"
+  onkeydown="if(event.key==='Enter'||event.key===' ')document.getElementById('fileInput').click()">
+  <svg class="dz-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+    <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6z"/>
+    <path d="M14 2v6h6M12 18v-6M9 15l3-3 3 3"/>
+  </svg>
+  <p>Glisser un PDF ici ou <span>cliquer pour parcourir</span></p>
+  <input type="file" id="fileInput" accept="application/pdf" style="display:none" onchange="handleFile(this.files[0])">
+</div>
+<div id="pageInfo">
+  <span id="docName"></span>
+  <span id="pageCount"></span>
+  <div class="page-range">
+    <span>Pages :</span>
+    <input type="number" id="pageFrom" min="1" value="1" aria-label="Page de début">
+    <span>à</span>
+    <input type="number" id="pageTo" min="1" value="1" aria-label="Page de fin">
+    <button onclick="extractPages()" style="padding:5px 10px;font-size:0.78rem;">Extraire</button>
+  </div>
+</div>
+<div id="extractProgress">⏳ Extraction du texte en cours…</div>
+<div class="controls">
+  <div class="control-group voice-wrap">
+    <label for="voiceSelect">Voix</label>
+    <select id="voiceSelect"></select>
+  </div>
+  <div class="control-group">
+    <label for="rate">Vitesse — <strong id="rateVal">0.85</strong>×</label>
+    <input type="range" id="rate" min="0.5" max="1.5" step="0.05" value="0.85">
+  </div>
+  <div class="control-group">
+    <label for="pitch">Ton — <strong id="pitchVal">1.0</strong></label>
+    <input type="range" id="pitch" min="0.5" max="1.5" step="0.1" value="1.0">
+  </div>
+</div>
+<textarea id="textInput" placeholder="Le texte extrait du PDF apparaîtra ici. Vous pouvez aussi coller du texte directement." aria-label="Texte à lire"></textarea>
+<div id="progressWrap" aria-hidden="true"><div id="progressBar"></div></div>
+<div class="playback">
+  <button id="playBtn" class="primary" onclick="startSpeech()">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg> Lire
+  </button>
+  <button id="pauseBtn" onclick="togglePause()" disabled>
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg> Pause
+  </button>
+  <button id="stopBtn" onclick="stopSpeech()" disabled>
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 6h12v12H6z"/></svg> Arrêter
+  </button>
+  <span id="statusMsg" role="status" aria-live="polite"></span>
+</div>
+<div id="noVoiceMsg" role="alert">
+  ⚠️ Aucune voix française détectée. Essayez Chrome ou Edge.<br>
+  Windows : Paramètres → Heure et langue → Voix → Ajouter des voix → Français.<br>
+  macOS : Accessibilité → Contenu vocal → Voix système → Personnaliser.
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+  pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  const synth=window.speechSynthesis;
+  let voices=[],utterance=null,paused=false,chunkIndex=0,chunks=[],pdfDoc=null,totalPages=0;
+  const $=id=>document.getElementById(id);
+  $('rate').oninput=()=>$('rateVal').textContent=parseFloat($('rate').value).toFixed(2);
+  $('pitch').oninput=()=>$('pitchVal').textContent=parseFloat($('pitch').value).toFixed(1);
+  function loadVoices(){
+    voices=synth.getVoices();
+    const fr=voices.filter(v=>v.lang.startsWith('fr'));
+    const sel=$('voiceSelect'); sel.innerHTML='';
+    if(fr.length===0){
+      $('noVoiceMsg').style.display='block';
+      voices.forEach(v=>{const o=document.createElement('option');o.value=v.name;o.textContent=v.name+' ('+v.lang+')';sel.appendChild(o);});
+      return;
+    }
+    fr.forEach(v=>{
+      const o=document.createElement('option');o.value=v.name;
+      o.textContent=v.name+' — '+v.lang+(v.lang==='fr-CA'||v.name.toLowerCase().includes('canada')?' ★':'');
+      sel.appendChild(o);
+    });
+  }
+  if(synth.onvoiceschanged!==undefined)synth.onvoiceschanged=loadVoices;
+  loadVoices();setTimeout(loadVoices,500);
+  function onDragOver(e){e.preventDefault();$('dropZone').classList.add('drag-over');}
+  function onDragLeave(){$('dropZone').classList.remove('drag-over');}
+  function onDrop(e){
+    e.preventDefault();$('dropZone').classList.remove('drag-over');
+    const f=e.dataTransfer.files[0];
+    if(f&&f.type==='application/pdf')handleFile(f);
+    else $('statusMsg').textContent='Veuillez déposer un fichier PDF.';
+  }
+  function handleFile(file){
+    if(!file)return;
+    const reader=new FileReader();
+    reader.onload=async(e)=>{
+      pdfDoc=await pdfjsLib.getDocument({data:new Uint8Array(e.target.result)}).promise;
+      totalPages=pdfDoc.numPages;
+      $('docName').textContent=file.name;
+      $('pageCount').textContent=totalPages+' page'+(totalPages>1?'s':'');
+      $('pageFrom').value=1;$('pageFrom').max=totalPages;
+      $('pageTo').value=totalPages;$('pageTo').max=totalPages;
+      $('pageInfo').classList.add('visible');
+      await extractPages();
+    };
+    reader.readAsArrayBuffer(file);
+  }
+  async function extractPages(){
+    if(!pdfDoc)return;
+    const from=Math.max(1,parseInt($('pageFrom').value)||1);
+    const to=Math.min(totalPages,parseInt($('pageTo').value)||totalPages);
+    $('extractProgress').style.display='block';
+    $('textInput').value='';
+    let text='';
+    for(let i=from;i<=to;i++){
+      const page=await pdfDoc.getPage(i);
+      const content=await page.getTextContent();
+      const t=content.items.map(it=>it.str).join(' ').replace(/\s+/g,' ').trim();
+      if(t)text+=t+'\n\n';
+    }
+    $('textInput').value=text.trim();
+    $('extractProgress').style.display='none';
+    $('statusMsg').textContent='Texte extrait — pages '+from+' à '+to+'.';
+  }
+  function splitChunks(text){
+    return text.match(/[^.!?;:\n]+[.!?;:\n]*/g)?.map(s=>s.trim()).filter(Boolean)||[text];
+  }
+  function startSpeech(){
+    const text=$('textInput').value.trim();
+    if(!text){$('statusMsg').textContent='Veuillez charger un PDF ou coller du texte.';return;}
+    synth.cancel();chunks=splitChunks(text);chunkIndex=0;paused=false;
+    $('progressWrap').style.display='block';$('progressBar').style.width='0%';
+    speakChunk();
+  }
+  function speakChunk(){
+    if(chunkIndex>=chunks.length){onEnd();return;}
+    const voice=voices.find(v=>v.name===$('voiceSelect').value);
+    utterance=new SpeechSynthesisUtterance(chunks[chunkIndex]);
+    if(voice)utterance.voice=voice;
+    utterance.lang=voice?voice.lang:'fr-FR';
+    utterance.rate=parseFloat($('rate').value);
+    utterance.pitch=parseFloat($('pitch').value);
+    utterance.onstart=()=>{
+      setButtons(true);
+      $('statusMsg').textContent='Lecture… ('+(chunkIndex+1)+'/'+chunks.length+')';
+      $('progressBar').style.width=Math.round((chunkIndex/chunks.length)*100)+'%';
+    };
+    utterance.onend=()=>{if(!paused){chunkIndex++;speakChunk();}};
+    utterance.onerror=(e)=>{if(e.error!=='interrupted'){$('statusMsg').textContent='Erreur : '+e.error;onEnd();}};
+    synth.speak(utterance);
+  }
+  function togglePause(){
+    if(!synth.speaking)return;
+    if(paused){
+      paused=false;synth.resume();
+      $('pauseBtn').innerHTML='<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg> Pause';
+      $('statusMsg').textContent='Lecture en cours…';
+    }else{
+      paused=true;synth.pause();
+      $('pauseBtn').innerHTML='<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg> Reprendre';
+      $('statusMsg').textContent='En pause';
+    }
+  }
+  function stopSpeech(){paused=false;synth.cancel();onEnd();}
+  function onEnd(){
+    setButtons(false);
+    $('progressBar').style.width='100%';
+    setTimeout(()=>{$('progressWrap').style.display='none';$('progressBar').style.width='0%';},900);
+    $('statusMsg').textContent=chunkIndex>=chunks.length&&chunks.length>0?'Lecture terminée ✓':'';
+  }
+  function setButtons(on){$('playBtn').disabled=on;$('pauseBtn').disabled=!on;$('stopBtn').disabled=!on;}
+  if('serviceWorker' in navigator){
+    window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+  }
+</script>
+</body>
+</html>
