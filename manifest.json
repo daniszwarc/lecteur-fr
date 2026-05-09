@@ -2,20 +2,21 @@
   "name": "Lecteur FR",
   "short_name": "Lecteur FR",
   "description": "Lecture de texte et PDF en français",
-  "start_url": "/",
+  "start_url": "/lecteur-fr/",
+  "scope": "/lecteur-fr/",
   "display": "standalone",
   "background_color": "#1a1a2e",
   "theme_color": "#1a1a2e",
   "lang": "fr",
   "icons": [
     {
-      "src": "icons/icon-192.png",
+      "src": "/lecteur-fr/icons/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "icons/icon-512.png",
+      "src": "/lecteur-fr/icons/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
