@@ -34,11 +34,12 @@
     /* section titles */
     .section-title{font-family:'Syne',sans-serif;font-size:0.72rem;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--text2);margin-bottom:0.6rem}
     /* drop zone */
-    #dropZone{border:1.5px dashed var(--border2);border-radius:var(--radius-lg);padding:2.2rem 1rem;text-align:center;cursor:pointer;transition:background 0.2s,border-color 0.2s;margin-bottom:1.25rem;background:var(--surface2)}
+    #dropZone{position:relative;border:1.5px dashed var(--border2);border-radius:var(--radius-lg);padding:2.2rem 1rem;text-align:center;transition:background 0.2s,border-color 0.2s;margin-bottom:1.25rem;background:var(--surface2)}
     #dropZone:hover,#dropZone.drag-over{background:var(--accent-bg);border-color:var(--accent)}
-    #dropZone .dz-icon{width:40px;height:40px;margin:0 auto 12px;color:var(--accent)}
-    #dropZone p{font-size:0.875rem;color:var(--text2)}
-    #dropZone span{color:var(--accent);font-weight:500}
+    #dropZone .dz-icon{width:40px;height:40px;margin:0 auto 12px;color:var(--accent);pointer-events:none}
+    #dropZone p{font-size:0.875rem;color:var(--text2);pointer-events:none}
+    #fileInput{position:absolute;inset:0;cursor:pointer;border:none;background:transparent;color:transparent;font-size:0}
+    #fileInput::file-selector-button,#fileInput::-webkit-file-upload-button{display:none}
     /* page info */
     #pageInfo{display:none;align-items:center;flex-wrap:wrap;gap:8px 12px;background:var(--surface);border-radius:var(--radius);padding:0.65rem 1rem;margin-bottom:1rem;font-size:0.84rem;border:1px solid var(--border)}
     #pageInfo.visible{display:flex}
@@ -114,17 +115,13 @@
 
 <h2 class="sr-only">Importer un PDF ou coller du texte pour lecture vocale</h2>
 
-<div id="dropZone"
-  onclick="document.getElementById('fileInput').click()"
-  ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)"
-  role="button" tabindex="0" aria-label="Importer un fichier PDF"
-  onkeydown="if(event.key==='Enter'||event.key===' ')document.getElementById('fileInput').click()">
+<div id="dropZone">
   <svg class="dz-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
     <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6z"/>
     <path d="M14 2v6h6M12 18v-6M9 15l3-3 3 3"/>
   </svg>
-  <p>Glisser un PDF ici ou <span>cliquer pour parcourir</span></p>
-  <input type="file" id="fileInput" accept="application/pdf" style="display:none" onchange="handleFile(this.files[0])">
+  <p>Sélectionner un PDF</p>
+  <input type="file" id="fileInput" accept="application/pdf" onchange="handleFile(this.files[0])">
 </div>
 
 <div id="pageInfo">
@@ -242,15 +239,15 @@ function loadVoices(){
 if(synth.onvoiceschanged!==undefined)synth.onvoiceschanged=loadVoices;
 loadVoices();setTimeout(loadVoices,500);
 
-// ── Drag & drop ──
-function onDragOver(e){e.preventDefault();$('dropZone').classList.add('drag-over');}
-function onDragLeave(){$('dropZone').classList.remove('drag-over');}
-function onDrop(e){
+// ── Drag & drop (attached to #fileInput for desktop; iOS uses direct tap) ──
+$('fileInput').addEventListener('dragover',e=>{e.preventDefault();$('dropZone').classList.add('drag-over');});
+$('fileInput').addEventListener('dragleave',()=>$('dropZone').classList.remove('drag-over'));
+$('fileInput').addEventListener('drop',e=>{
   e.preventDefault();$('dropZone').classList.remove('drag-over');
   const f=e.dataTransfer.files[0];
   if(f&&f.type==='application/pdf')handleFile(f);
   else $('statusMsg').textContent='Veuillez déposer un fichier PDF.';
-}
+});
 function handleFile(file){
   if(!file)return;
   const reader=new FileReader();
