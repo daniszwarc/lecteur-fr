@@ -40,12 +40,10 @@
     #dropZone p{font-size:0.875rem;color:var(--text2);pointer-events:none}
     #fileInput{position:absolute;inset:0;cursor:pointer;border:none;background:transparent;color:transparent;font-size:0}
     #fileInput::file-selector-button,#fileInput::-webkit-file-upload-button{display:none}
-    /* page info */
-    #pageInfo{display:none;align-items:center;flex-wrap:wrap;gap:8px 12px;background:var(--surface);border-radius:var(--radius);padding:0.65rem 1rem;margin-bottom:1rem;font-size:0.84rem;border:1px solid var(--border)}
-    #pageInfo.visible{display:flex}
-    #docName{font-weight:500;flex:1;min-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-    #pageCount{color:var(--text2)}
-    .page-range{display:flex;align-items:center;gap:6px;color:var(--text2)}
+    /* doc caption */
+    #docCaption{display:none;font-size:0.78rem;color:var(--text2);text-align:center;margin-top:-0.75rem;margin-bottom:1.25rem}
+    #docName{font-weight:500}
+    #pageCount{}
     /* structure preview */
     /* controls grid */
     .controls{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:1.25rem}
@@ -124,17 +122,7 @@
   <input type="file" id="fileInput" accept="application/pdf" onchange="handleFile(this.files[0])">
 </div>
 
-<div id="pageInfo">
-  <span id="docName"></span>
-  <span id="pageCount"></span>
-  <div class="page-range">
-    <span>Pages :</span>
-    <input type="number" id="pageFrom" min="1" value="1" aria-label="Page de début">
-    <span>à</span>
-    <input type="number" id="pageTo" min="1" value="1" aria-label="Page de fin">
-    <button class="sm" onclick="extractPages()">Extraire</button>
-  </div>
-</div>
+<div id="docCaption"><span id="docName"></span> · <span id="pageCount"></span></div>
 
 <div id="extractProgress">⏳ Extraction du texte en cours…</div>
 <div class="controls">
@@ -256,9 +244,7 @@ function handleFile(file){
     totalPages=pdfDoc.numPages;
     $('docName').textContent=file.name;
     $('pageCount').textContent=totalPages+' page'+(totalPages>1?'s':'');
-    $('pageFrom').value=1;$('pageFrom').max=totalPages;
-    $('pageTo').value=totalPages;$('pageTo').max=totalPages;
-    $('pageInfo').classList.add('visible');
+    $('docCaption').style.display='block';
     await extractPages();
   };
   reader.readAsArrayBuffer(file);
@@ -267,8 +253,8 @@ function handleFile(file){
 // ── PDF extraction with structure ──
 async function extractPages(){
   if(!pdfDoc)return;
-  const from=Math.max(1,parseInt($('pageFrom').value)||1);
-  const to=Math.min(totalPages,parseInt($('pageTo').value)||totalPages);
+  const from=1;
+  const to=totalPages;
   $('extractProgress').style.display='block';
   setTextContent('');
 
@@ -337,7 +323,7 @@ async function proxyCleanup(rawText,from,to){
     const r=await fetch('https://tts.daniszwarc.cloud/clean',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({text:rawText})
+      body:JSON.stringify({text:rawText,system_prompt:"Tu es un assistant de nettoyage de documents académiques. On te donne du texte extrait d'un PDF universitaire. Ton travail est de retourner uniquement le contenu principal, propre et lisible.\n\nRègles de formatage STRICTES:\n- Les titres et sous-titres doivent être sur leur propre ligne, séparés du texte suivant par une ligne vide\n- Chaque paragraphe doit être séparé du suivant par une ligne vide\n- Ne jamais fusionner un titre avec le texte qui suit sur la même ligne\n\nSupprime: numéros de page, en-têtes et pieds de page répétitifs, références bibliographiques, légendes de figures et tableaux, notes de bas de page, artefacts d'encodage et caractères parasites.\nCorrige les mots coupés par des tirets de fin de ligne.\nNe résume pas, ne reformule pas, ne traduis pas.\nRetourne le texte nettoyé uniquement, sans commentaires."})
     });
     if(!r.ok)throw new Error('HTTP '+r.status);
     const data=await r.json();
