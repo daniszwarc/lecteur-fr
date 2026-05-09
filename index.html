@@ -57,6 +57,13 @@
     /* textarea */
     textarea{width:100%;min-height:200px;padding:0.9rem 1rem;font-size:0.93rem;line-height:1.85;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:var(--radius-lg);resize:vertical;outline:none;margin-bottom:1.25rem;font-family:system-ui,'DM Sans',sans-serif}
     textarea:focus{border-color:var(--accent)}
+    /* reading display */
+    #readingDisplay{width:100%;min-height:200px;max-height:420px;padding:0.9rem 1rem;font-size:0.93rem;line-height:1.85;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:var(--radius-lg);margin-bottom:1.25rem;font-family:system-ui,'DM Sans',sans-serif;overflow-y:auto;word-wrap:break-word;cursor:default}
+    #readingDisplay:empty::before{content:'Le texte extrait du PDF apparaîtra ici. Vous pouvez aussi coller du texte directement.';color:var(--text2)}
+    .sentence{transition:background 0.2s;border-radius:3px;padding:1px 2px}
+    .sentence.speaking{background:var(--accent-bg);color:var(--text);outline:1px solid var(--accent)}
+    .sentence.spoken{opacity:0.5}
+    .sentence-heading{display:block;margin-top:0.75em;font-weight:600}
     /* toggle */
     .toggle-wrap{display:flex;align-items:center;gap:8px;font-size:0.82rem;color:var(--text2)}
     .toggle{position:relative;width:36px;height:20px;flex-shrink:0}
@@ -145,7 +152,8 @@
   </div>
 </div>
 
-<textarea id="textInput" placeholder="Le texte extrait du PDF apparaîtra ici. Vous pouvez aussi coller du texte directement." aria-label="Texte à lire"></textarea>
+<textarea id="textInput" style="display:none" placeholder="Le texte extrait du PDF apparaîtra ici. Vous pouvez aussi coller du texte directement." aria-label="Texte à lire"></textarea>
+<div id="readingDisplay" role="region" aria-label="Texte à lire" aria-live="off"></div>
 
 <div id="progressWrap" aria-hidden="true"><div id="progressBar"></div></div>
 <div class="playback">
@@ -167,6 +175,28 @@ pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/p
 const synth=window.speechSynthesis;
 let voices=[],utterance=null,paused=false,chunkIndex=0,chunks=[],pdfDoc=null,totalPages=0;
 const $=id=>document.getElementById(id);
+let sentenceSpans=[];
+function escHtml(t){return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function setTextContent(text){
+  $('textInput').value=text;
+  sentenceSpans=[];
+  const display=$('readingDisplay');
+  const trimmed=text.trim();
+  if(!trimmed){display.innerHTML='';return;}
+  const blocks=trimmed.split(/\n\n+/);
+  let idx=0;const parts=[];
+  blocks.forEach((block,bi)=>{
+    const tb=block.trim();if(!tb)return;
+    const sents=splitChunks(tb);if(!sents.length)return;
+    const letters=tb.replace(/[^a-zA-Z]/g,'');
+    const allUpper=letters.length>0&&letters===letters.toUpperCase()&&tb.length<80;
+    const spanHtml=sents.map(s=>{const i=idx++;return`<span class="sentence${allUpper?' sentence-heading':''}" data-index="${i}">${escHtml(s)}</span>`;}).join(' ');
+    if(bi>0)parts.push('<br><br>');
+    parts.push(spanHtml);
+  });
+  display.innerHTML=parts.join('');
+  display.querySelectorAll('.sentence').forEach(s=>sentenceSpans[parseInt(s.dataset.index)]=s);
+}
 
 $('rate').oninput=()=>$('rateVal').textContent=parseFloat($('rate').value).toFixed(2);
 $('pitch').oninput=()=>$('pitchVal').textContent=parseFloat($('pitch').value).toFixed(1);
@@ -231,7 +261,7 @@ async function extractPages(){
   const from=Math.max(1,parseInt($('pageFrom').value)||1);
   const to=Math.min(totalPages,parseInt($('pageTo').value)||totalPages);
   $('extractProgress').style.display='block';
-  $('textInput').value='';$('textInput').style.display='none';
+  setTextContent('');
 
   const allItems=[];
   for(let i=from;i<=to;i++){
@@ -282,7 +312,7 @@ async function extractPages(){
   });
 
   const rawText=plainLines.join('\n').trim();
-  $('textInput').value=rawText;
+  setTextContent(rawText);
   $('extractProgress').style.display='none';
 
   await proxyCleanup(rawText,from,to);
@@ -290,7 +320,7 @@ async function extractPages(){
 
 // ── Proxy semantic cleanup ──
 async function proxyCleanup(rawText,from,to){
-  if(!proxyAvailable){$('textInput').style.display='';return;}
+  if(!proxyAvailable){return;}
   $('statusMsg').textContent='Nettoyage sémantique en cours…';
   try{
     const r=await fetch('https://tts.daniszwarc.cloud/clean',{
@@ -300,13 +330,11 @@ async function proxyCleanup(rawText,from,to){
     });
     if(!r.ok)throw new Error('HTTP '+r.status);
     const data=await r.json();
-    $('textInput').value=data.cleaned_text;
+    setTextContent(data.cleaned_text);
     structureData = [];
-    $('textInput').style.display='';
     $('statusMsg').textContent='Texte nettoyé ✓ — pages '+from+' à '+to+'.';
   }catch(err){
     console.error('Proxy cleanup:',err);
-    $('textInput').style.display='';
     $('statusMsg').textContent='Nettoyage indisponible — texte brut affiché.';
   }
 }
@@ -337,8 +365,12 @@ function speakChunk(){
     setButtons(true);
     $('statusMsg').textContent='Lecture… ('+(chunkIndex+1)+'/'+chunks.length+')';
     $('progressBar').style.width=Math.round((chunkIndex/chunks.length)*100)+'%';
+    $('readingDisplay').querySelectorAll('.sentence').forEach(s=>s.classList.remove('speaking'));
+    const curSpan=sentenceSpans[chunkIndex];
+    if(curSpan){curSpan.classList.add('speaking');curSpan.scrollIntoView({behavior:'smooth',block:'center'});}
   };
   utterance.onend=()=>{
+    const doneSpan=sentenceSpans[chunkIndex];if(doneSpan){doneSpan.classList.remove('speaking');doneSpan.classList.add('spoken');}
     if(paused)return;
     chunkIndex++;
     const pause=parseInt($('sectionPause').value)||0;
@@ -358,6 +390,7 @@ function resumeIcon(){return'<svg width="15" height="15" viewBox="0 0 24 24" fil
 
 function stopSpeech(){
   paused=false;synth.cancel();
+  $('readingDisplay').querySelectorAll('.sentence').forEach(s=>s.classList.remove('speaking','spoken'));
   onEnd();
 }
 function onEnd(){
