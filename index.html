@@ -316,6 +316,7 @@ async function proxyCleanup(rawText,from,to){
     if(!r.ok)throw new Error('HTTP '+r.status);
     const data=await r.json();
     $('textInput').value=data.cleaned_text;
+    structureData = [];
     $('statusMsg').textContent='Texte nettoyé ✓ — pages '+from+' à '+to+'.';
   }catch(err){
     console.error('Proxy cleanup:',err);
