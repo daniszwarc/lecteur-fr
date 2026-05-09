@@ -46,12 +46,6 @@
     #pageCount{color:var(--text2)}
     .page-range{display:flex;align-items:center;gap:6px;color:var(--text2)}
     /* structure preview */
-    #structurePanel{display:none;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1rem;margin-bottom:1.25rem;max-height:220px;overflow-y:auto}
-    #structurePanel.visible{display:block}
-    #structurePanel .sp-h1{font-family:'Syne',sans-serif;font-size:1rem;font-weight:700;color:var(--text);margin:0.5rem 0 0.25rem}
-    #structurePanel .sp-h2{font-size:0.9rem;font-weight:600;color:var(--accent);margin:0.4rem 0 0.2rem;padding-left:0.75rem;border-left:2px solid var(--accent)}
-    #structurePanel .sp-h3{font-size:0.82rem;font-weight:500;color:var(--text2);margin:0.25rem 0;padding-left:1.5rem}
-    #structurePanel .sp-p{font-size:0.8rem;color:var(--text2);margin:0.1rem 0;padding-left:0.75rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     /* controls grid */
     .controls{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:1.25rem}
     @media(max-width:520px){.controls{grid-template-columns:1fr 1fr}.voice-wrap{grid-column:1/-1}}
@@ -132,8 +126,6 @@
 </div>
 
 <div id="extractProgress">⏳ Extraction du texte en cours…</div>
-<div id="structurePanel" aria-label="Aperçu de la structure du document"></div>
-
 <div class="controls">
   <div class="control-group voice-wrap">
     <label for="voiceSelect">Voix système</label>
@@ -239,7 +231,7 @@ async function extractPages(){
   const from=Math.max(1,parseInt($('pageFrom').value)||1);
   const to=Math.min(totalPages,parseInt($('pageTo').value)||totalPages);
   $('extractProgress').style.display='block';
-  $('textInput').value='';$('structurePanel').innerHTML='';$('structurePanel').classList.remove('visible');
+  $('textInput').value='';$('textInput').style.display='none';
 
   const allItems=[];
   for(let i=from;i<=to;i++){
@@ -282,30 +274,23 @@ async function extractPages(){
     structure.push({type,text:t});
   }
 
-  // Build plain text and structure preview
+  // Build plain text
   const plainLines=[];
-  const spEl=$('structurePanel');
   structure.forEach(s=>{
     plainLines.push(s.text);
     if(s.type==='h1'||s.type==='h2')plainLines.push('');
-    const el=document.createElement('div');
-    el.className='sp-'+s.type;
-    el.textContent=s.text;
-    spEl.appendChild(el);
   });
 
   const rawText=plainLines.join('\n').trim();
   $('textInput').value=rawText;
   $('extractProgress').style.display='none';
-  if(spEl.children.length>0)spEl.classList.add('visible');
-  $('statusMsg').textContent='Texte extrait — pages '+from+' à '+to+'.';
 
   await proxyCleanup(rawText,from,to);
 }
 
 // ── Proxy semantic cleanup ──
 async function proxyCleanup(rawText,from,to){
-  if(!proxyAvailable)return;
+  if(!proxyAvailable){$('textInput').style.display='';return;}
   $('statusMsg').textContent='Nettoyage sémantique en cours…';
   try{
     const r=await fetch('https://tts.daniszwarc.cloud/clean',{
@@ -317,9 +302,11 @@ async function proxyCleanup(rawText,from,to){
     const data=await r.json();
     $('textInput').value=data.cleaned_text;
     structureData = [];
+    $('textInput').style.display='';
     $('statusMsg').textContent='Texte nettoyé ✓ — pages '+from+' à '+to+'.';
   }catch(err){
     console.error('Proxy cleanup:',err);
+    $('textInput').style.display='';
     $('statusMsg').textContent='Nettoyage indisponible — texte brut affiché.';
   }
 }
