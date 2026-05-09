@@ -63,16 +63,6 @@
     /* textarea */
     textarea{width:100%;min-height:200px;padding:0.9rem 1rem;font-size:0.93rem;line-height:1.85;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:var(--radius-lg);resize:vertical;outline:none;margin-bottom:1.25rem;font-family:system-ui,'DM Sans',sans-serif}
     textarea:focus{border-color:var(--accent)}
-    /* VPS panel */
-    .vps-panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1rem 1.1rem;margin-bottom:1.25rem}
-    .vps-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:0.7rem}
-    .vps-row:last-child{margin-bottom:0}
-    .vps-panel input[type="url"]{flex:1;min-width:160px}
-    .badge{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:20px;font-size:0.74rem;font-weight:500;background:#f3f4f6;color:var(--text2);border:1px solid var(--border)}
-    .badge.green{background:#dbeafe;color:#1d4ed8;border:1px solid #bfdbfe}
-    .badge.purple{background:#ede9fe;color:#6d28d9;border:1px solid #ddd6fe}
-    .badge.red{background:#fee2e2;color:#dc2626;border:1px solid #fecaca}
-    .dot{width:6px;height:6px;border-radius:50%;background:currentColor}
     /* toggle */
     .toggle-wrap{display:flex;align-items:center;gap:8px;font-size:0.82rem;color:var(--text2)}
     .toggle{position:relative;width:36px;height:20px;flex-shrink:0}
@@ -163,25 +153,6 @@
   </div>
 </div>
 
-<!-- VPS TTS panel -->
-<div class="vps-panel" id="vpsPanel">
-  <div class="section-title">Voix clonée — serveur TTS</div>
-  <div class="vps-row">
-    <input type="url" id="vpsUrl" placeholder="https://tts.daniszwarc.cloud" aria-label="URL du serveur TTS"/>
-    <button class="sm" onclick="testVps()">Tester</button>
-    <span id="vpsBadge"></span>
-  </div>
-  <div class="vps-row">
-    <label class="toggle-wrap">
-      <span class="toggle">
-        <input type="checkbox" id="useClonedVoice" onchange="onCloneToggle()"/>
-        <span class="toggle-slider"></span>
-      </span>
-      Utiliser la voix clonée
-    </label>
-  </div>
-</div>
-
 <textarea id="textInput" placeholder="Le texte extrait du PDF apparaîtra ici. Vous pouvez aussi coller du texte directement." aria-label="Texte à lire"></textarea>
 
 <div id="progressWrap" aria-hidden="true"><div id="progressBar"></div></div>
@@ -197,32 +168,26 @@
   </button>
   <span id="statusMsg" role="status" aria-live="polite"></span>
 </div>
-<div id="noVoiceMsg" role="alert">
-  ⚠️ Aucune voix française détectée. Essayez Chrome ou Edge.<br>
-  Windows : Paramètres → Heure et langue → Voix → Ajouter des voix → Français.<br>
-  macOS : Accessibilité → Contenu vocal → Voix système → Personnaliser.
-</div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script>
 pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 const synth=window.speechSynthesis;
 let voices=[],utterance=null,paused=false,chunkIndex=0,chunks=[],pdfDoc=null,totalPages=0;
-let vpsAudio=null,vpsPlaying=false;
 const $=id=>document.getElementById(id);
-
-// Persist VPS URL
-const storedUrl=localStorage.getItem('vpsUrl')||'https://tts.daniszwarc.cloud';
-$('vpsUrl').value=storedUrl;
-$('vpsUrl').addEventListener('input',()=>localStorage.setItem('vpsUrl',$('vpsUrl').value.trim()));
-
-const storedClone=localStorage.getItem('useClonedVoice')==='true';
-$('useClonedVoice').checked=storedClone;
-updateCloneBadge();
 
 $('rate').oninput=()=>$('rateVal').textContent=parseFloat($('rate').value).toFixed(2);
 $('pitch').oninput=()=>$('pitchVal').textContent=parseFloat($('pitch').value).toFixed(1);
 $('sectionPause').oninput=()=>$('sectionPauseVal').textContent=$('sectionPause').value;
+
+// ── Proxy health check (cached at page load) ──
+let proxyAvailable=false;
+(async function checkProxy(){
+  try{
+    const r=await fetch('https://tts.daniszwarc.cloud/health');
+    proxyAvailable=r.ok;
+  }catch{proxyAvailable=false;}
+})();
 
 // ── Voice loading ──
 function loadVoices(){
@@ -329,36 +294,33 @@ async function extractPages(){
     spEl.appendChild(el);
   });
 
-  $('textInput').value=plainLines.join('\n').trim();
+  const rawText=plainLines.join('\n').trim();
+  $('textInput').value=rawText;
   $('extractProgress').style.display='none';
   if(spEl.children.length>0)spEl.classList.add('visible');
   $('statusMsg').textContent='Texte extrait — pages '+from+' à '+to+'.';
+
+  await proxyCleanup(rawText,from,to);
 }
 
-// ── VPS panel ──
-async function testVps(){
-  const url=($('vpsUrl').value||'').replace(/\/$/,'');
-  $('vpsBadge').innerHTML='<span class="badge purple"><span class="dot"></span>Test…</span>';
+// ── Proxy semantic cleanup ──
+async function proxyCleanup(rawText,from,to){
+  if(!proxyAvailable)return;
+  $('statusMsg').textContent='Nettoyage sémantique en cours…';
   try{
-    const r=await fetch(url+'/health',{signal:AbortSignal.timeout(6000)});
-    const d=await r.json();
-    const voiceOk=d.voice_loaded;
-    $('vpsBadge').innerHTML=voiceOk
-      ?'<span class="badge green"><span class="dot"></span>Voix clonée ✓</span>'
-      :'<span class="badge purple"><span class="dot"></span>Voix système (pas de sample)</span>';
-  }catch{
-    $('vpsBadge').innerHTML='<span class="badge red"><span class="dot"></span>Inaccessible</span>';
+    const r=await fetch('https://tts.daniszwarc.cloud/clean',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({text:rawText})
+    });
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    const data=await r.json();
+    $('textInput').value=data.cleaned_text;
+    $('statusMsg').textContent='Texte nettoyé ✓ — pages '+from+' à '+to+'.';
+  }catch(err){
+    console.error('Proxy cleanup:',err);
+    $('statusMsg').textContent='Nettoyage indisponible — texte brut affiché.';
   }
-}
-function onCloneToggle(){
-  localStorage.setItem('useClonedVoice',$('useClonedVoice').checked);
-  updateCloneBadge();
-}
-function updateCloneBadge(){
-  const on=$('useClonedVoice').checked;
-  $('vpsBadge').innerHTML=on
-    ?'<span class="badge green"><span class="dot"></span>Voix clonée</span>'
-    :'<span class="badge purple"><span class="dot"></span>Voix système</span>';
 }
 
 // ── Playback ──
@@ -366,51 +328,12 @@ function splitChunks(text){
   return text.match(/[^.!?;:\n]+[.!?;:\n]*/g)?.map(s=>s.trim()).filter(Boolean)||[text];
 }
 
-async function startSpeech(){
+function startSpeech(){
   const text=$('textInput').value.trim();
   if(!text){$('statusMsg').textContent='Veuillez charger un PDF ou coller du texte.';return;}
   stopSpeech();
   chunks=splitChunks(text);chunkIndex=0;paused=false;
   $('progressWrap').style.display='block';$('progressBar').style.width='0%';
-
-  if($('useClonedVoice').checked){
-    await playVps(text);
-  }else{
-    speakChunk();
-  }
-}
-
-async function playVps(text){
-  const url=($('vpsUrl').value||'').replace(/\/$/,'');
-  const speed=parseFloat($('rate').value);
-  setButtons(true);$('statusMsg').textContent='Synthèse en cours…';
-  try{
-    const res=await fetch(url+'/speak',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({text,speed}),
-    });
-    if(!res.ok)throw new Error('HTTP '+res.status);
-    const blob=await res.blob();
-    const objUrl=URL.createObjectURL(blob);
-    vpsAudio=new Audio(objUrl);
-    vpsPlaying=true;
-    vpsAudio.onended=()=>{URL.revokeObjectURL(objUrl);vpsPlaying=false;onEnd();};
-    vpsAudio.onerror=()=>{URL.revokeObjectURL(objUrl);vpsPlaying=false;fallbackSpeech(text);};
-    vpsAudio.play();
-    $('statusMsg').textContent='Lecture (voix clonée)…';
-    const updateProg=setInterval(()=>{
-      if(!vpsAudio||vpsAudio.ended){clearInterval(updateProg);return;}
-      if(vpsAudio.duration)$('progressBar').style.width=Math.round((vpsAudio.currentTime/vpsAudio.duration)*100)+'%';
-    },300);
-  }catch{
-    fallbackSpeech(text);
-  }
-}
-
-function fallbackSpeech(text){
-  $('statusMsg').textContent='TTS VPS indisponible — voix système…';
-  chunks=splitChunks(text);chunkIndex=0;
   speakChunk();
 }
 
@@ -438,11 +361,6 @@ function speakChunk(){
 }
 
 function togglePause(){
-  if(vpsPlaying&&vpsAudio){
-    if(vpsAudio.paused){vpsAudio.play();paused=false;$('pauseBtn').innerHTML=pauseIcon()+'Pause';$('statusMsg').textContent='Lecture…';}
-    else{vpsAudio.pause();paused=true;$('pauseBtn').innerHTML=resumeIcon()+'Reprendre';$('statusMsg').textContent='En pause';}
-    return;
-  }
   if(!synth.speaking)return;
   if(paused){paused=false;synth.resume();$('pauseBtn').innerHTML=pauseIcon()+'Pause';$('statusMsg').textContent='Lecture en cours…';}
   else{paused=true;synth.pause();$('pauseBtn').innerHTML=resumeIcon()+'Reprendre';$('statusMsg').textContent='En pause';}
@@ -452,8 +370,6 @@ function resumeIcon(){return'<svg width="15" height="15" viewBox="0 0 24 24" fil
 
 function stopSpeech(){
   paused=false;synth.cancel();
-  if(vpsAudio){vpsAudio.pause();vpsAudio=null;}
-  vpsPlaying=false;
   onEnd();
 }
 function onEnd(){
