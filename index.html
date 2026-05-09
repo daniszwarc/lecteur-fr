@@ -64,6 +64,13 @@
     .sentence.speaking{background:var(--accent-bg);color:var(--text);outline:1px solid var(--accent)}
     .sentence.spoken{opacity:0.5}
     .sentence-heading{display:block;margin-top:0.75em;font-weight:600}
+    /* cleaning overlay */
+    #cleaningOverlay{width:100%;min-height:200px;max-height:420px;padding:0.9rem 1rem;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-lg);margin-bottom:1.25rem;flex-direction:column;align-items:center;justify-content:center;gap:0.9rem;text-align:center}
+    .co-title{font-size:0.93rem;color:var(--text);font-weight:500}
+    .co-sub{font-size:0.8rem;color:var(--text2)}
+    .co-bar-wrap{width:55%;max-width:260px;height:4px;background:var(--border);border-radius:2px;overflow:hidden}
+    .co-bar{height:100%;width:45%;background:var(--accent);border-radius:2px;animation:coSlide 1.4s ease-in-out infinite alternate}
+    @keyframes coSlide{from{transform:translateX(0)}to{transform:translateX(122%)}}
     /* toggle */
     .toggle-wrap{display:flex;align-items:center;gap:8px;font-size:0.82rem;color:var(--text2)}
     .toggle{position:relative;width:36px;height:20px;flex-shrink:0}
@@ -154,6 +161,11 @@
 
 <textarea id="textInput" style="display:none" placeholder="Le texte extrait du PDF apparaîtra ici. Vous pouvez aussi coller du texte directement." aria-label="Texte à lire"></textarea>
 <div id="readingDisplay" role="region" aria-label="Texte à lire" aria-live="off"></div>
+<div id="cleaningOverlay" style="display:none">
+  <p class="co-title">Nettoyage sémantique en cours…</p>
+  <div class="co-bar-wrap"><div class="co-bar"></div></div>
+  <p class="co-sub">Analyse du document par l'IA</p>
+</div>
 
 <div id="progressWrap" aria-hidden="true"><div id="progressBar"></div></div>
 <div class="playback">
@@ -321,6 +333,8 @@ async function extractPages(){
 // ── Proxy semantic cleanup ──
 async function proxyCleanup(rawText,from,to){
   if(!proxyAvailable){return;}
+  $('readingDisplay').style.display='none';
+  $('cleaningOverlay').style.display='flex';
   $('statusMsg').textContent='Nettoyage sémantique en cours…';
   try{
     const r=await fetch('https://tts.daniszwarc.cloud/clean',{
@@ -332,9 +346,13 @@ async function proxyCleanup(rawText,from,to){
     const data=await r.json();
     setTextContent(data.cleaned_text);
     structureData = [];
+    $('cleaningOverlay').style.display='none';
+    $('readingDisplay').style.display='';
     $('statusMsg').textContent='Texte nettoyé ✓ — pages '+from+' à '+to+'.';
   }catch(err){
     console.error('Proxy cleanup:',err);
+    $('cleaningOverlay').style.display='none';
+    $('readingDisplay').style.display='';
     $('statusMsg').textContent='Nettoyage indisponible — texte brut affiché.';
   }
 }
